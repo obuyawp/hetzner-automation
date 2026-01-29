@@ -7,13 +7,14 @@ pipeline {
     }
 
     environment {
-        TF_VAR_hcloud_token = credentials('hcloud-token')
+        // This must match your Jenkins Credential ID exactly
+        TF_VAR_hcloud_token = credentials('hcloud_token')
     }
 
     stages {
         stage('Debug Token') {
             steps {
-                // This will tell us the exact character count
+                // This will tell us the exact character count (target is 64)
                 sh 'echo -n $TF_VAR_hcloud_token | wc -c'
             }
         }
