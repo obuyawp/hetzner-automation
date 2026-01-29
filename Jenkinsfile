@@ -2,7 +2,8 @@ pipeline {
     agent {
         docker { 
             image 'hashicorp/terraform:latest' 
-            args '-u root --entrypoint='''
+            // Using double quotes here is often more stable in Groovy
+            args "-u root --entrypoint=''"
         }
     }
 
