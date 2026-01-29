@@ -7,11 +7,16 @@ pipeline {
     }
 
     environment {
-        
         TF_VAR_hcloud_token = credentials('hcloud-token')
     }
 
     stages {
+        stage('Debug Token') {
+            steps {
+                // This will tell us the exact character count
+                sh 'echo -n $TF_VAR_hcloud_token | wc -c'
+            }
+        }
         stage('Terraform Init') {
             steps {
                 sh 'terraform init'
@@ -19,8 +24,6 @@ pipeline {
         }
         stage('Terraform Plan') {
             steps {
-                // Notice we don't need to pass -var anymore! 
-                // Terraform finds TF_VAR_hcloud_token automatically.
                 sh 'terraform plan'
             }
         }
