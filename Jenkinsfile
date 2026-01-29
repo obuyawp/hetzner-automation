@@ -2,13 +2,13 @@ pipeline {
     agent {
         docker { 
             image 'hashicorp/terraform:latest' 
-            // Using double quotes here is often more stable in Groovy
             args "-u root --entrypoint=''"
         }
     }
 
     environment {
-        HCLOUD_TOKEN = credentials('hcloud-token')
+        
+        TF_VAR_hcloud_token = credentials('hcloud-token')
     }
 
     stages {
@@ -19,12 +19,14 @@ pipeline {
         }
         stage('Terraform Plan') {
             steps {
-                sh "terraform plan -var='hcloud_token=${HCLOUD_TOKEN}'"
+                // Notice we don't need to pass -var anymore! 
+                // Terraform finds TF_VAR_hcloud_token automatically.
+                sh 'terraform plan'
             }
         }
         stage('Terraform Apply') {
             steps {
-                sh "terraform apply -auto-approve -var='hcloud_token=${HCLOUD_TOKEN}'"
+                sh 'terraform apply -auto-approve'
             }
         }
     }
