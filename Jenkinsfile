@@ -1,33 +1,41 @@
 pipeline {
-    agent {
-        docker { 
-            image 'hashicorp/terraform:latest' 
-            args "-u root --entrypoint=''"
-        }
-    }
-
-    environment {
-        // Hetzner Token
-        TF_VAR_hcloud_token = credentials('hcloud_token')
-        // HCP Terraform Token (must be this exact variable name)
-        TF_TOKEN_app_terraform_io = credentials('hcp-terraform-token')
-    }
-
+    agent any
+    
     stages {
-        stage('Terraform Init') {
-            steps {
-                sh 'terraform init'
-            }
-        }
         stage('Terraform Plan') {
             steps {
-                sh 'terraform plan'
+                script {
+                
+                    sh "terraform plan -no-color > plan_output.txt"
+                    env.TF_SUMMARY = sh(script: "grep 'Plan:' plan_output.txt || echo 'No changes detected'", returnStdout: true).trim()
+                }
             }
         }
+
         stage('Terraform Apply') {
             steps {
                 sh 'terraform apply -auto-approve'
             }
+        }
+    }
+
+    post {
+        success {
+            slackSend(
+                color: 'good', 
+                message: "✅ *Hetzner Deployment Successful*\n" +
+                         "*Build:* #${env.BUILD_NUMBER}\n" +
+                         "*Status:* ${env.TF_SUMMARY}\n" +
+                         "*Action:* Check the console here: ${env.BUILD_URL}"
+            )
+        }
+        failure {
+            slackSend(
+                color: 'danger', 
+                message: "❌ *Hetzner Deployment Failed*\n" +
+                         "*Build:* #${env.BUILD_NUMBER}\n" +
+                         "*Error:* Check logs immediately: ${env.BUILD_URL}"
+            )
         }
     }
 }
