@@ -1,13 +1,23 @@
 terraform {
+  # 1. This handles your Remote State "Memory"
+  cloud {
+    organization = "obuya-infra"
+    workspaces {
+      name = "hetzner-automation"
+    }
+  }
+
+  # 2. This tells Terraform where to download the Hetzner plugin
   required_providers {
     hcloud = {
       source  = "hetznercloud/hcloud"
-      version = "~> 1.45" # It's good practice to lock the version
+      version = "~> 1.45"
     }
   }
 }
 
 variable "hcloud_token" {
+  type      = string
   sensitive = true
 }
 
