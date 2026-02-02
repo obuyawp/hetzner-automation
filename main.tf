@@ -14,7 +14,7 @@ terraform {
 provider "hcloud" {
   token = var.hcloud_token
 }
-
+/*
 # 1. SSH KEY - Reading from your local file
 resource "hcloud_ssh_key" "admin_key" {
   name       = "jenkins-provisioned-key"
@@ -54,3 +54,4 @@ resource "hcloud_server" "nodes" {
     hcloud_network_subnet.helsinki_subnet
   ]
 }
+*/
