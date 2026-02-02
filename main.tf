@@ -26,7 +26,7 @@ provider "hcloud" {
 }
 
 # Your test resource
-resource "hcloud_network" "test_net" {
-  name     = "automation-network"
-  ip_range = "10.0.0.0/16"
-}
+# resource "hcloud_network" "test_net" {
+#  name     = "automation-network"
+#  ip_range = "10.0.0.0/16"
+# }
