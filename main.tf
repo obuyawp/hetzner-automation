@@ -19,14 +19,14 @@ provider "hcloud" {
 resource "hcloud_ssh_key" "admin_key" {
   name       = "jenkins-provisioned-key"
   public_key = file("${path.module}/id_ed25519.pub")
-}
+}*/
 
 # 2. PRIVATE NETWORK
 resource "hcloud_network" "test_net" {
   name     = "automation-network"
   ip_range = "10.0.0.0/16"
 }
-
+/*
 # 3. SUBNET 
 resource "hcloud_network_subnet" "helsinki_subnet" {
   network_id   = hcloud_network.test_net.id
