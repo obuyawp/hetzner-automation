@@ -14,14 +14,16 @@ terraform {
 provider "hcloud" {
   token = var.hcloud_token
 }
-
+/*
 # 1. SSH KEY - Reading from your local file
+
 resource "hcloud_ssh_key" "admin_key" {
   name       = "jenkins-provisioned-key"
   public_key = file("${path.module}/id_ed25519.pub")
 }
 
 # 2. PRIVATE NETWORK
+
 resource "hcloud_network" "test_net" {
   name     = "automation-network"
   ip_range = "10.0.0.0/16"
@@ -35,7 +37,8 @@ resource "hcloud_network_subnet" "helsinki_subnet" {
   ip_range     = "10.0.1.0/24"
 }
 
-# 4. SERVERS 
+# 4. SERVERS
+
 resource "hcloud_server" "nodes" {
   for_each    = var.server_list
   
@@ -53,5 +56,5 @@ resource "hcloud_server" "nodes" {
   depends_on = [
     hcloud_network_subnet.helsinki_subnet
   ]
-}
+}*/
 
