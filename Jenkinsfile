@@ -2,14 +2,13 @@ pipeline {
     agent {
         docker { 
             image 'hashicorp/terraform:latest' 
+            // We stay as root to manage the infra, but we MUST clean up after ourselves
             args "-u root --entrypoint=''"
         }
     }
 
     environment {
-        
         TF_TOKEN_app_terraform_io = credentials('hcp-terraform-token')
-    
         TF_VAR_hcloud_token       = credentials('hcloud_token')
     }
 
@@ -35,6 +34,11 @@ pipeline {
     }
 
     post {
+        // 'always' ensures cleanup happens even if the build fails
+        always {
+            // This is the permanent fix for "Operation not permitted"
+            cleanWs()
+        }
         success {
             slackSend(
                 channel: 'C0ACD830SBC',
