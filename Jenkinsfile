@@ -41,7 +41,12 @@ pipeline {
                               fi
                             fi
 
-                            SERVER_ADMIN_PASSWORD_HASH="$(openssl passwd -6 "${SERVER_ADMIN_PASSWORD}")"
+                            if command -v sha256sum >/dev/null 2>&1; then
+                              SERVER_ADMIN_PASSWORD_SALT="$(printf '%s' "${SERVER_ADMIN_USERNAME}" | sha256sum | awk '{print substr($1,1,16)}')"
+                            else
+                              SERVER_ADMIN_PASSWORD_SALT="$(printf '%s' "${SERVER_ADMIN_USERNAME}" | openssl dgst -sha256 | awk '{print substr($NF,1,16)}')"
+                            fi
+                            SERVER_ADMIN_PASSWORD_HASH="$(openssl passwd -6 -salt "${SERVER_ADMIN_PASSWORD_SALT}" "${SERVER_ADMIN_PASSWORD}")"
                             cat > dynamic_admin.auto.tfvars.json <<EOF
 {
   "enable_ssh_key": false,
@@ -77,7 +82,12 @@ EOF
                           fi
                         fi
 
-                        SERVER_ADMIN_PASSWORD_HASH="$(openssl passwd -6 "${SERVER_ADMIN_PASSWORD}")"
+                        if command -v sha256sum >/dev/null 2>&1; then
+                          SERVER_ADMIN_PASSWORD_SALT="$(printf '%s' "${SERVER_ADMIN_USERNAME}" | sha256sum | awk '{print substr($1,1,16)}')"
+                        else
+                          SERVER_ADMIN_PASSWORD_SALT="$(printf '%s' "${SERVER_ADMIN_USERNAME}" | openssl dgst -sha256 | awk '{print substr($NF,1,16)}')"
+                        fi
+                        SERVER_ADMIN_PASSWORD_HASH="$(openssl passwd -6 -salt "${SERVER_ADMIN_PASSWORD_SALT}" "${SERVER_ADMIN_PASSWORD}")"
                         cat > dynamic_admin.auto.tfvars.json <<EOF
 {
   "enable_ssh_key": false,
