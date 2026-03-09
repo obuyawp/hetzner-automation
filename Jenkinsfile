@@ -110,6 +110,17 @@ pipeline {
         stage('Publish Inventory to Google Sheet') {
             steps {
                 sh '''
+                    if ! command -v curl >/dev/null 2>&1; then
+                      if command -v apk >/dev/null 2>&1; then
+                        apk add --no-cache curl
+                      elif command -v apt-get >/dev/null 2>&1; then
+                        apt-get update && apt-get install -y curl
+                      else
+                        echo "Cannot install curl in this build container."
+                        exit 1
+                      fi
+                    fi
+
                     terraform output -json inventory_servers > inventory_servers.json || echo '[]' > inventory_servers.json
                     SERVERS_JSON=$(cat inventory_servers.json)
                     cat > inventory_payload.json <<EOF
