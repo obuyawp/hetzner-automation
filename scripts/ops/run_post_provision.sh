@@ -11,7 +11,10 @@ run_as_non_root_user() {
       echo "RUN_AZURE_AGENT=true requires a non-root execution context (missing SUDO_USER)." >&2
       return 1
     fi
-    sudo -H -u "${SUDO_USER}" bash "${script_path}"
+    sudo -H -u "${SUDO_USER}" env \
+      AZP_TOKEN="${AZP_TOKEN:-}" \
+      AZURE_DEVOPS_PAT="${AZURE_DEVOPS_PAT:-}" \
+      bash "${script_path}"
   else
     bash "${script_path}"
   fi
