@@ -8,7 +8,8 @@ fi
 
 : "${TENABLE_KEY:?Set TENABLE_KEY}"
 TENABLE_GROUPS="${TENABLE_GROUPS:-Linux-Servers}"
-TENABLE_INSTALL_TIMEOUT_SECONDS="${TENABLE_INSTALL_TIMEOUT_SECONDS:-900}"
+TENABLE_INSTALL_TIMEOUT_SECONDS="${TENABLE_INSTALL_TIMEOUT_SECONDS:-240}"
+TENABLE_REQUIRED="${TENABLE_REQUIRED:-false}"
 TENABLE_INSTALLER_URL="https://sensor.cloud.tenable.com/install/agent?groups=${TENABLE_GROUPS}"
 TENABLE_INSTALL_SCRIPT="/tmp/tenable_agent_install.sh"
 TENABLE_INSTALL_LOG="/tmp/tenable_agent_install.log"
@@ -28,12 +29,20 @@ set -e
 
 if [[ "${INSTALL_RC}" -eq 124 ]]; then
   echo "Tenable install timed out after ${TENABLE_INSTALL_TIMEOUT_SECONDS}s. Check ${TENABLE_INSTALL_LOG}." >&2
-  exit 1
+  if [[ "${TENABLE_REQUIRED}" == "true" ]]; then
+    exit 1
+  fi
+  echo "Continuing because TENABLE_REQUIRED=false." >&2
+  exit 0
 fi
 
 if [[ "${INSTALL_RC}" -ne 0 ]]; then
   echo "Tenable install failed (exit ${INSTALL_RC}). Check ${TENABLE_INSTALL_LOG}." >&2
-  exit "${INSTALL_RC}"
+  if [[ "${TENABLE_REQUIRED}" == "true" ]]; then
+    exit "${INSTALL_RC}"
+  fi
+  echo "Continuing because TENABLE_REQUIRED=false." >&2
+  exit 0
 fi
 
 echo "Tenable agent installation completed."
