@@ -212,7 +212,7 @@ EOF
 {"servers": ${SERVERS_JSON}}
 EOF
 
-                    HTTP_CODE="$(curl -sS -o webhook_response.txt -w "%{http_code}" -X POST "$GOOGLE_SHEET_WEBHOOK_URL" \
+                    HTTP_CODE="$(curl -sS -L --max-redirs 5 -o webhook_response.txt -w "%{http_code}" -X POST "$GOOGLE_SHEET_WEBHOOK_URL" \
                       -H "Content-Type: application/json" \
                       --data @inventory_payload.json || true)"
 
