@@ -21,6 +21,12 @@ variable "ssh_public_key_path" {
   default     = "id_ed25519.pub"
 }
 
+variable "enable_ssh_key" {
+  description = "Whether to register and attach an SSH key to new servers."
+  type        = bool
+  default     = false
+}
+
 variable "network_cidr" {
   description = "Private network CIDR for server communication."
   type        = string

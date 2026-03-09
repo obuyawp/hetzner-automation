@@ -25,16 +25,72 @@ pipeline {
     stages {
         stage('Terraform Plan') {
             steps {
-                script {
-                    sh "terraform init"
-                    sh "terraform plan -no-color | tee plan_output.txt"
-                    env.TF_SUMMARY = sh(script: "grep 'Plan:' plan_output.txt || echo 'No changes detected'", returnStdout: true).trim()
+                withCredentials([
+                    usernamePassword(credentialsId: 'server_admin_login', usernameVariable: 'SERVER_ADMIN_USERNAME', passwordVariable: 'SERVER_ADMIN_PASSWORD')
+                ]) {
+                    script {
+                        sh '''
+                            if ! command -v openssl >/dev/null 2>&1; then
+                              if command -v apk >/dev/null 2>&1; then
+                                apk add --no-cache openssl
+                              elif command -v apt-get >/dev/null 2>&1; then
+                                apt-get update && apt-get install -y openssl
+                              else
+                                echo "Cannot install openssl in this build container."
+                                exit 1
+                              fi
+                            fi
+
+                            SERVER_ADMIN_PASSWORD_HASH="$(openssl passwd -6 "${SERVER_ADMIN_PASSWORD}")"
+                            cat > dynamic_admin.auto.tfvars.json <<EOF
+{
+  "enable_ssh_key": false,
+  "admin_user": {
+    "enabled": true,
+    "username": "${SERVER_ADMIN_USERNAME}",
+    "password_hash": "${SERVER_ADMIN_PASSWORD_HASH}"
+  }
+}
+EOF
+                            terraform init
+                            terraform plan -no-color | tee plan_output.txt
+                        '''
+                        env.TF_SUMMARY = sh(script: "grep 'Plan:' plan_output.txt || echo 'No changes detected'", returnStdout: true).trim()
+                    }
                 }
             }
         }
         stage('Terraform Apply') {
             steps {
-                sh 'terraform apply -auto-approve'
+                withCredentials([
+                    usernamePassword(credentialsId: 'server_admin_login', usernameVariable: 'SERVER_ADMIN_USERNAME', passwordVariable: 'SERVER_ADMIN_PASSWORD')
+                ]) {
+                    sh '''
+                        if ! command -v openssl >/dev/null 2>&1; then
+                          if command -v apk >/dev/null 2>&1; then
+                            apk add --no-cache openssl
+                          elif command -v apt-get >/dev/null 2>&1; then
+                            apt-get update && apt-get install -y openssl
+                          else
+                            echo "Cannot install openssl in this build container."
+                            exit 1
+                          fi
+                        fi
+
+                        SERVER_ADMIN_PASSWORD_HASH="$(openssl passwd -6 "${SERVER_ADMIN_PASSWORD}")"
+                        cat > dynamic_admin.auto.tfvars.json <<EOF
+{
+  "enable_ssh_key": false,
+  "admin_user": {
+    "enabled": true,
+    "username": "${SERVER_ADMIN_USERNAME}",
+    "password_hash": "${SERVER_ADMIN_PASSWORD_HASH}"
+  }
+}
+EOF
+                        terraform apply -auto-approve
+                    '''
+                }
             }
         }
         stage('Post-Provision Configure Servers') {
@@ -43,7 +99,7 @@ pipeline {
             }
             steps {
                 withCredentials([
-                    sshUserPrivateKey(credentialsId: 'hetzner_server_ssh_key', keyFileVariable: 'SSH_KEY_FILE', usernameVariable: 'SSH_KEY_USER'),
+                    usernamePassword(credentialsId: 'server_admin_login', usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASSWORD'),
                     string(credentialsId: 'NETBIRD_SETUP_KEY', variable: 'NETBIRD_SETUP_KEY'),
                     string(credentialsId: 'TENABLE_KEY', variable: 'TENABLE_KEY')
                 ]) {
@@ -55,13 +111,13 @@ pipeline {
                           exit 0
                         fi
 
-                        if ! command -v ssh >/dev/null 2>&1 || ! command -v scp >/dev/null 2>&1; then
+                        if ! command -v ssh >/dev/null 2>&1 || ! command -v scp >/dev/null 2>&1 || ! command -v sshpass >/dev/null 2>&1; then
                           if command -v apk >/dev/null 2>&1; then
-                            apk add --no-cache openssh-client
+                            apk add --no-cache openssh-client sshpass
                           elif command -v apt-get >/dev/null 2>&1; then
-                            apt-get update && apt-get install -y openssh-client
+                            apt-get update && apt-get install -y openssh-client sshpass
                           else
-                            echo "Cannot install ssh/scp client tools in this build container."
+                            echo "Cannot install ssh/scp/sshpass client tools in this build container."
                             exit 1
                           fi
                         fi
@@ -77,7 +133,7 @@ pipeline {
                           echo "Waiting for SSH on $HOST ..."
                           ATTEMPT=1
                           SSH_ERR_FILE="$(mktemp)"
-                          until ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$SSH_KEY_USER@$HOST" "echo SSH_READY" >/dev/null 2>"$SSH_ERR_FILE"; do
+                          until sshpass -p "$SSH_PASSWORD" ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$SSH_USER@$HOST" "echo SSH_READY" >/dev/null 2>"$SSH_ERR_FILE"; do
                             if [ "$ATTEMPT" -eq 1 ]; then
                               echo "First SSH error for $HOST:"
                               sed -n '1,5p' "$SSH_ERR_FILE" || true
@@ -94,10 +150,10 @@ pipeline {
                           done
                           rm -f "$SSH_ERR_FILE"
 
-                          ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_KEY_USER@$HOST" "sudo mkdir -p /opt/hetzner-ops"
-                          scp -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null scripts/ops/*.sh "$SSH_KEY_USER@$HOST:/opt/hetzner-ops/"
+                          sshpass -p "$SSH_PASSWORD" ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$HOST" "sudo mkdir -p /opt/hetzner-ops"
+                          sshpass -p "$SSH_PASSWORD" scp -o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null scripts/ops/*.sh "$SSH_USER@$HOST:/opt/hetzner-ops/"
 
-                          ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_KEY_USER@$HOST" "
+                          sshpass -p "$SSH_PASSWORD" ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$HOST" "
                             sudo chmod +x /opt/hetzner-ops/*.sh
                             sudo RUN_CREATE_USER=false \
                               RUN_AZURE_AGENT=${RUN_AZURE_AGENT} \
@@ -148,7 +204,7 @@ EOF
             // PERMANENT FIX: Delete root-owned files before the container exits
             // This allows the next 'Git Checkout' to succeed
             sh 'rm -rf .terraform*' 
-            sh 'rm -f plan_output.txt inventory_servers.json inventory_payload.json server_ips.txt'
+            sh 'rm -f plan_output.txt inventory_servers.json inventory_payload.json server_ips.txt dynamic_admin.auto.tfvars.json'
             cleanWs()
         }
         success {

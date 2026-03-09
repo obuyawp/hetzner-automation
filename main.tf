@@ -40,6 +40,8 @@ locals {
 }
 
 resource "hcloud_ssh_key" "admin_key" {
+  count = var.enable_ssh_key ? 1 : 0
+
   name       = var.ssh_public_key_name
   public_key = file(var.ssh_public_key_path)
 }
@@ -64,7 +66,7 @@ resource "hcloud_server" "nodes" {
   location    = each.value.location
   image       = each.value.image
   labels      = each.value.labels
-  ssh_keys    = [hcloud_ssh_key.admin_key.id]
+  ssh_keys    = var.enable_ssh_key ? [hcloud_ssh_key.admin_key[0].id] : null
 
   dynamic "network" {
     for_each = [

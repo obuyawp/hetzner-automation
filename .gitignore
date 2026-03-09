@@ -5,4 +5,4 @@
 plan_output.txt
 inventory_servers.json
 inventory_payload.json
-OPERATIONS.md
+dynamic_admin.auto.tfvars.json
