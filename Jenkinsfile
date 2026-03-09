@@ -76,14 +76,23 @@ pipeline {
 
                           echo "Waiting for SSH on $HOST ..."
                           ATTEMPT=1
-                          until ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$SSH_KEY_USER@$HOST" "echo SSH_READY" >/dev/null 2>&1; do
+                          SSH_ERR_FILE="$(mktemp)"
+                          until ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=8 "$SSH_KEY_USER@$HOST" "echo SSH_READY" >/dev/null 2>"$SSH_ERR_FILE"; do
+                            if [ "$ATTEMPT" -eq 1 ]; then
+                              echo "First SSH error for $HOST:"
+                              sed -n '1,5p' "$SSH_ERR_FILE" || true
+                            fi
                             if [ "$ATTEMPT" -ge 30 ]; then
                               echo "SSH not reachable on $HOST after multiple attempts."
+                              echo "Last SSH error for $HOST:"
+                              cat "$SSH_ERR_FILE" || true
+                              rm -f "$SSH_ERR_FILE"
                               exit 1
                             fi
                             ATTEMPT=$((ATTEMPT + 1))
                             sleep 10
                           done
+                          rm -f "$SSH_ERR_FILE"
 
                           ssh -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_KEY_USER@$HOST" "sudo mkdir -p /opt/hetzner-ops"
                           scp -i "$SSH_KEY_FILE" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null scripts/ops/*.sh "$SSH_KEY_USER@$HOST:/opt/hetzner-ops/"
