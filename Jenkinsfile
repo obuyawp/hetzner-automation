@@ -20,7 +20,7 @@ pipeline {
     environment {
         TF_TOKEN_app_terraform_io = credentials('hcp-terraform-token')
         TF_VAR_hcloud_token       = credentials('hcloud_token')
-        GOOGLE_SHEET_WEBHOOK_URL  = 'https://script.google.com/macros/s/AKfycbx4rDpWsTXZVmIfCaHrZV_3ruGBqPuUW40eUP3VzX2udDA1V61-p864AjuXp_L2nYnM/exec'
+        GOOGLE_SHEET_WEBHOOK_URL  = 'https://script.google.com/macros/s/AKfycbyEBEyAv5ep7pjVVQgnS5FiKOwN3jzsGjwRsIcZuMKiWIjgSUKDeIYVYiFv090D33Q/exec'
     }
 
     stages {
@@ -224,7 +224,7 @@ EOF
 {"secret":"${GOOGLE_SHEET_SECRET}","servers": ${SERVERS_JSON}}
 EOF
 
-                        HTTP_CODE="$(curl -sS -L --max-redirs 5 --post301 --post302 --post303 -o webhook_response.txt -w "%{http_code}" -X POST "$GOOGLE_SHEET_WEBHOOK_URL" \
+                        HTTP_CODE="$(curl -sS -L --max-redirs 5 -o webhook_response.txt -w "%{http_code}" "$GOOGLE_SHEET_WEBHOOK_URL" \
                           -H "Content-Type: application/json" \
                           --data @inventory_payload.json || true)"
 
