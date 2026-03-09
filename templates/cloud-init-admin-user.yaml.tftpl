@@ -1,0 +1,13 @@
+#cloud-config
+users:
+  - default
+  - name: ${username}
+    gecos: "Automation Admin"
+    groups: sudo
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    lock_passwd: false
+    passwd: ${password_hash}
+
+ssh_pwauth: true
+disable_root: false
