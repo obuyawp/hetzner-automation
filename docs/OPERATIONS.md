@@ -69,6 +69,9 @@ Set secrets in Jenkins credentials or secure env injection:
 - `TENABLE_KEY`
 - `server_admin_login` (type: Username with password)
 
+NetBird management URL defaults to `https://ngao.oneacrefund.org:33073`.  
+Override with `NETBIRD_MGMT_URL` if needed.
+
 ## 5. Jenkins credential IDs for post-provision stage
 
 The pipeline stage `Post-Provision Configure Servers` expects:
