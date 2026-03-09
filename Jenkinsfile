@@ -14,6 +14,7 @@ pipeline {
         booleanParam(name: 'RUN_WAZUH', defaultValue: true, description: 'Install and configure Wazuh agent')
         booleanParam(name: 'RUN_TENABLE', defaultValue: true, description: 'Install and configure Tenable agent')
         booleanParam(name: 'RUN_HARDENING', defaultValue: false, description: 'Run CIS hardening script')
+        booleanParam(name: 'FAIL_ON_INVENTORY_PUBLISH_ERROR', defaultValue: false, description: 'Fail pipeline when Google Sheet publish fails')
     }
 
     environment {
@@ -189,6 +190,11 @@ EOF
         stage('Publish Inventory to Google Sheet') {
             steps {
                 sh '''
+                    if [ -z "${GOOGLE_SHEET_WEBHOOK_URL:-}" ]; then
+                      echo "GOOGLE_SHEET_WEBHOOK_URL is not set. Skipping inventory publish."
+                      exit 0
+                    fi
+
                     if ! command -v curl >/dev/null 2>&1; then
                       if command -v apk >/dev/null 2>&1; then
                         apk add --no-cache curl
@@ -205,9 +211,24 @@ EOF
                     cat > inventory_payload.json <<EOF
 {"servers": ${SERVERS_JSON}}
 EOF
-                    curl -fsS -X POST "$GOOGLE_SHEET_WEBHOOK_URL" \
+
+                    HTTP_CODE="$(curl -sS -o webhook_response.txt -w "%{http_code}" -X POST "$GOOGLE_SHEET_WEBHOOK_URL" \
                       -H "Content-Type: application/json" \
-                      --data @inventory_payload.json
+                      --data @inventory_payload.json || true)"
+
+                    case "$HTTP_CODE" in
+                      2??)
+                        echo "Inventory published successfully (HTTP $HTTP_CODE)."
+                        ;;
+                      *)
+                        echo "Inventory publish failed (HTTP $HTTP_CODE)." >&2
+                        sed -n '1,40p' webhook_response.txt || true
+                        if [ "${FAIL_ON_INVENTORY_PUBLISH_ERROR:-false}" = "true" ]; then
+                          exit 1
+                        fi
+                        echo "Continuing because FAIL_ON_INVENTORY_PUBLISH_ERROR=false."
+                        ;;
+                    esac
                 '''
             }
         }
@@ -218,7 +239,7 @@ EOF
             // PERMANENT FIX: Delete root-owned files before the container exits
             // This allows the next 'Git Checkout' to succeed
             sh 'rm -rf .terraform*' 
-            sh 'rm -f plan_output.txt inventory_servers.json inventory_payload.json server_ips.txt dynamic_admin.auto.tfvars.json'
+            sh 'rm -f plan_output.txt inventory_servers.json inventory_payload.json server_ips.txt dynamic_admin.auto.tfvars.json webhook_response.txt'
             cleanWs()
         }
         success {
