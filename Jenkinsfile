@@ -189,47 +189,57 @@ EOF
         }
         stage('Publish Inventory to Google Sheet') {
             steps {
-                sh '''
-                    if [ -z "${GOOGLE_SHEET_WEBHOOK_URL:-}" ]; then
-                      echo "GOOGLE_SHEET_WEBHOOK_URL is not set. Skipping inventory publish."
-                      exit 0
-                    fi
+                withCredentials([
+                    string(credentialsId: 'GOOGLE_SHEET_SECRET', variable: 'GOOGLE_SHEET_SECRET')
+                ]) {
+                    sh '''
+                        if [ -z "${GOOGLE_SHEET_WEBHOOK_URL:-}" ]; then
+                          echo "GOOGLE_SHEET_WEBHOOK_URL is not set. Skipping inventory publish."
+                          exit 0
+                        fi
 
-                    if ! command -v curl >/dev/null 2>&1; then
-                      if command -v apk >/dev/null 2>&1; then
-                        apk add --no-cache curl
-                      elif command -v apt-get >/dev/null 2>&1; then
-                        apt-get update && apt-get install -y curl
-                      else
-                        echo "Cannot install curl in this build container."
-                        exit 1
-                      fi
-                    fi
+                        if [ -z "${GOOGLE_SHEET_SECRET:-}" ]; then
+                          echo "GOOGLE_SHEET_SECRET credential is empty or missing." >&2
+                          if [ "${FAIL_ON_INVENTORY_PUBLISH_ERROR:-false}" = "true" ]; then
+                            exit 1
+                          fi
+                          echo "Continuing because FAIL_ON_INVENTORY_PUBLISH_ERROR=false."
+                          exit 0
+                        fi
 
-                    terraform output -json inventory_servers > inventory_servers.json || echo '[]' > inventory_servers.json
-                    SERVERS_JSON=$(cat inventory_servers.json)
-                    cat > inventory_payload.json <<EOF
-{"servers": ${SERVERS_JSON}}
+                        if ! command -v curl >/dev/null 2>&1; then
+                          if command -v apk >/dev/null 2>&1; then
+                            apk add --no-cache curl
+                          elif command -v apt-get >/dev/null 2>&1; then
+                            apt-get update && apt-get install -y curl
+                          else
+                            echo "Cannot install curl in this build container."
+                            exit 1
+                          fi
+                        fi
+
+                        terraform output -json inventory_servers > inventory_servers.json || echo '[]' > inventory_servers.json
+                        SERVERS_JSON=$(cat inventory_servers.json)
+                        cat > inventory_payload.json <<EOF
+{"secret":"${GOOGLE_SHEET_SECRET}","servers": ${SERVERS_JSON}}
 EOF
 
-                    HTTP_CODE="$(curl -sS -L --max-redirs 5 -o webhook_response.txt -w "%{http_code}" -X POST "$GOOGLE_SHEET_WEBHOOK_URL" \
-                      -H "Content-Type: application/json" \
-                      --data @inventory_payload.json || true)"
+                        HTTP_CODE="$(curl -sS -L --max-redirs 5 --post301 --post302 --post303 -o webhook_response.txt -w "%{http_code}" -X POST "$GOOGLE_SHEET_WEBHOOK_URL" \
+                          -H "Content-Type: application/json" \
+                          --data @inventory_payload.json || true)"
 
-                    case "$HTTP_CODE" in
-                      2??)
-                        echo "Inventory published successfully (HTTP $HTTP_CODE)."
-                        ;;
-                      *)
-                        echo "Inventory publish failed (HTTP $HTTP_CODE)." >&2
-                        sed -n '1,40p' webhook_response.txt || true
-                        if [ "${FAIL_ON_INVENTORY_PUBLISH_ERROR:-false}" = "true" ]; then
-                          exit 1
+                        if [[ "$HTTP_CODE" =~ ^2[0-9][0-9]$ ]] && grep -Eq '"ok"[[:space:]]*:[[:space:]]*true' webhook_response.txt; then
+                          echo "Inventory published successfully (HTTP $HTTP_CODE)."
+                        else
+                          echo "Inventory publish failed (HTTP $HTTP_CODE)." >&2
+                          sed -n '1,40p' webhook_response.txt || true
+                          if [ "${FAIL_ON_INVENTORY_PUBLISH_ERROR:-false}" = "true" ]; then
+                            exit 1
+                          fi
+                          echo "Continuing because FAIL_ON_INVENTORY_PUBLISH_ERROR=false."
                         fi
-                        echo "Continuing because FAIL_ON_INVENTORY_PUBLISH_ERROR=false."
-                        ;;
-                    esac
-                '''
+                    '''
+                }
             }
         }
     }
