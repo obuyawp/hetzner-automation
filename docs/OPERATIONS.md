@@ -74,6 +74,7 @@ Set secrets in Jenkins credentials or secure env injection:
 The pipeline stage `Post-Provision Configure Servers` expects:
 
 - `server_admin_login` (type: Username with password)
+- `AZP_TOKEN` (type: Secret text, required when `RUN_AZURE_AGENT=true`)
 - `NETBIRD_SETUP_KEY` (type: Secret text)
 - `TENABLE_KEY` (type: Secret text)
 

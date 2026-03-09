@@ -1,0 +1,389 @@
+Started by user Wycliffe Obuya
+Obtained Jenkinsfile from git https://github.com/obuyawp/hetzner-automation
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in /var/jenkins_home/workspace/Hetzner-infra-pipeline
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Declarative: Checkout SCM)
+[Pipeline] checkout
+Selected Git installation does not exist. Using Default
+The recommended git tool is: NONE
+using credential github-creds
+Cloning the remote Git repository
+Cloning repository https://github.com/obuyawp/hetzner-automation
+ > git init /var/jenkins_home/workspace/Hetzner-infra-pipeline # timeout=10
+Fetching upstream changes from https://github.com/obuyawp/hetzner-automation
+ > git --version # timeout=10
+ > git --version # 'git version 2.47.3'
+using GIT_ASKPASS to set credentials Github Credentials
+ > git fetch --tags --force --progress -- https://github.com/obuyawp/hetzner-automation +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git config remote.origin.url https://github.com/obuyawp/hetzner-automation # timeout=10
+ > git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+Avoid second fetch
+ > git rev-parse refs/remotes/origin/dev^{commit} # timeout=10
+Checking out Revision 3152b89f5ea453ee595ebe0f46eefe3ec9e3f24a (refs/remotes/origin/dev)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f 3152b89f5ea453ee595ebe0f46eefe3ec9e3f24a # timeout=10
+Commit message: "added new run as user"
+ > git rev-list --no-walk fd8588990932283be8ef243c182e4705df477457 # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] isUnix
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] sh
++ docker inspect -f . hashicorp/terraform:latest
+.
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] withDockerContainer
+Jenkins seems to be running inside container ae0e1b70e1147eff05f0df8584332a2dc31524fb1178db9b88de053540f18334
+$ docker run -t -d -u 1000:1000 -u root --entrypoint= -w /var/jenkins_home/workspace/Hetzner-infra-pipeline --volumes-from ae0e1b70e1147eff05f0df8584332a2dc31524fb1178db9b88de053540f18334 -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** hashicorp/terraform:latest cat
+$ docker top 1cbca68ef67adc5f32505300a0edf31bd38516a16cfe6f4b37091505029a24c5 -eo pid,comm
+[Pipeline] {
+[Pipeline] withCredentials
+Masking supported pattern matches of $TF_VAR_hcloud_token or $TF_TOKEN_app_terraform_io
+[Pipeline] {
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Terraform Plan)
+[Pipeline] withCredentials
+Masking supported pattern matches of $SERVER_ADMIN_PASSWORD
+[Pipeline] {
+[Pipeline] script
+[Pipeline] {
+[Pipeline] sh
++ command -v openssl
++ command -v apk
++ apk add --no-cache openssl
+(1/1) Installing openssl (3.5.5-r0)
+Executing busybox-1.37.0-r30.trigger
+OK: 28.3 MiB in 41 packages
++ openssl passwd -6 ****
++ SERVER_ADMIN_PASSWORD_HASH='$6$fG0I7aBB0DwGkUs2$d9G8EMRR43KfFlMw3P0qc8W5MM7NZ0DS9xZ/zOgcRqahwDHDY4heAMGu1qEP.g8j8SJIME0ryPg1dSd8B/Fsl.'
++ cat
++ terraform init
+[0m[1mInitializing HCP Terraform...[0m
+[0m[1mInitializing provider plugins...[0m
+- Finding hetznercloud/hcloud versions matching "~> 1.45"...
+- Installing hetznercloud/hcloud v1.60.1...
+- Installed hetznercloud/hcloud v1.60.1 (signed by a HashiCorp partner, key ID [0m[1m5219EACB3A77198B[0m[0m)
+Partner and community providers are signed by their developers.
+If you'd like to know more about provider signing, you can read about it here:
+https://developer.hashicorp.com/terraform/cli/plugins/signing
+Terraform has created a lock file [1m.terraform.lock.hcl[0m to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.[0m
+
+[0m[1m[32mHCP Terraform has been successfully initialized![0m[32m[0m
+[0m[32m
+You may now begin working with HCP Terraform. Try running "terraform plan" to
+see any changes that are required for your infrastructure.
+
+If you ever set or change modules or Terraform Settings, run "terraform init"
+again to reinitialize your working directory.[0m
++ + tee plan_output.txtterraform
+ plan -no-color
+Running plan in HCP Terraform. Output will stream here. Pressing Ctrl-C
+will stop streaming the logs, but will not stop the plan running remotely.
+
+Preparing the remote plan...
+
+To view this run in a browser, visit:
+https://app.terraform.io/app/obuya-infra/hetzner-automation/runs/run-Ph7xogYMnTerd27a
+
+Waiting for the plan to start...
+
+Terraform v1.14.4
+on linux_amd64
+Initializing plugins and modules...
+hcloud_network.automation: Refreshing state... [id=12013423]
+hcloud_network_subnet.automation_subnet: Refreshing state... [id=12013423-10.0.1.0/24]
+hcloud_server.nodes["hetzner_test"]: Refreshing state... [id=123144199]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+-/+ destroy and then create replacement
+
+Terraform will perform the following actions:
+
+  # hcloud_server.nodes["hetzner_test"] must be replaced
+-/+ resource "hcloud_server" "nodes" {
+      + backup_window              = (known after apply)
+      ~ datacenter                 = "hel1-dc2" -> (known after apply)
+      ~ firewall_ids               = [] -> (known after apply)
+      ~ id                         = "123144199" -> (known after apply)
+      ~ ipv4_address               = "77.42.29.32" -> (known after apply)
+      ~ ipv6_address               = "2a01:4f9:c010:a0a5::1" -> (known after apply)
+      ~ ipv6_network               = "2a01:4f9:c010:a0a5::/64" -> (known after apply)
+        name                       = "dev-iac-server"
+      - placement_group_id         = 0 -> null
+      ~ primary_disk_size          = 80 -> (known after apply)
+      ~ status                     = "running" -> (known after apply)
+      ~ user_data                  = "x5qbtXu92ptwIfycQNEMI2t0aNk=" -> "7sjczksCP5KWqX0sTNrAgoRnvMk=" # forces replacement
+        # (11 unchanged attributes hidden)
+
+      - network {
+          - alias_ips   = [] -> null
+          - ip          = "10.0.1.1" -> null
+          - mac_address = "86:00:00:72:48:8f" -> null
+          - network_id  = 12013423 -> null
+        }
+      + network {
+          + alias_ips   = (known after apply)
+          + ip          = (known after apply)
+          + mac_address = (known after apply)
+          + network_id  = 12013423
+        }
+    }
+
+Plan: 1 to add, 0 to change, 1 to destroy.
+
+Changes to Outputs:
+  ~ inventory_servers     = [
+      ~ {
+            name        = "dev-iac-server"
+          ~ public_ip   = "77.42.29.32" -> (known after apply)
+          ~ status      = "running" -> (known after apply)
+            # (6 unchanged attributes hidden)
+        },
+    ]
+  ~ server_public_ips_csv = "77.42.29.32" -> (known after apply)
+
+─────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
+[Pipeline] sh
++ grep Plan: plan_output.txt
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Terraform Apply)
+[Pipeline] withCredentials
+Masking supported pattern matches of $SERVER_ADMIN_PASSWORD
+[Pipeline] {
+[Pipeline] sh
++ command -v openssl
++ openssl passwd -6 ****
++ SERVER_ADMIN_PASSWORD_HASH='$6$ZpeJWnbbJWJAF0WS$7d4.FgUQlDArhhsgYDhZy3XbFPodCJEHj3js7YxUM7aEYmCptpSwX2fLIfna7NdteG9wdQ4cB5dQILC6uTW3G1'
++ cat
++ terraform apply -auto-approve
+[0m[33mRunning apply in HCP Terraform. Output will stream here. Pressing Ctrl-C
+will cancel the remote apply if it's still pending. If the apply started it
+will stop streaming the logs, but will not stop the apply running remotely.[0m
+
+Preparing the remote apply...
+[0m
+[0m[33mTo view this run in a browser, visit:[0m
+[0m[33mhttps://app.terraform.io/app/obuya-infra/hetzner-automation/runs/run-wCxGmV9BPBDsD1vb[0m
+[0m
+Waiting for the plan to start...
+
+Terraform v1.14.4
+on linux_amd64
+Initializing plugins and modules...
+[1mhcloud_network.automation: Refreshing state... [id=12013423][0m[0m
+[1mhcloud_network_subnet.automation_subnet: Refreshing state... [id=12013423-10.0.1.0/24][0m[0m
+[1mhcloud_server.nodes["hetzner_test"]: Refreshing state... [id=123144199][0m[0m
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+[31m-[0m/[32m+[0m destroy and then create replacement[0m
+
+Terraform will perform the following actions:
+
+[1m  # hcloud_server.nodes["hetzner_test"][0m must be [1m[31mreplaced[0m
+[0m[31m-[0m/[32m+[0m[0m resource "hcloud_server" "nodes" {
+      [32m+[0m[0m backup_window              = (known after apply)
+      [33m~[0m[0m datacenter                 = "hel1-dc2" -> (known after apply)
+      [33m~[0m[0m firewall_ids               = [] -> (known after apply)
+      [33m~[0m[0m id                         = "123144199" -> (known after apply)
+      [33m~[0m[0m ipv4_address               = "77.42.29.32" -> (known after apply)
+      [33m~[0m[0m ipv6_address               = "2a01:4f9:c010:a0a5::1" -> (known after apply)
+      [33m~[0m[0m ipv6_network               = "2a01:4f9:c010:a0a5::/64" -> (known after apply)
+        name                       = "dev-iac-server"
+      [31m-[0m[0m placement_group_id         = 0 [90m-> null[0m[0m
+      [33m~[0m[0m primary_disk_size          = 80 -> (known after apply)
+      [33m~[0m[0m status                     = "running" -> (known after apply)
+      [33m~[0m[0m user_data                  = "x5qbtXu92ptwIfycQNEMI2t0aNk=" [33m->[0m[0m "yU05Ajir8NexCxrzrimqsxTG630=" [31m# forces replacement[0m[0m
+        [90m# (11 unchanged attributes hidden)[0m[0m
+
+      [31m-[0m[0m network {
+          [31m-[0m[0m alias_ips   = [] [90m-> null[0m[0m
+          [31m-[0m[0m ip          = "10.0.1.1" [90m-> null[0m[0m
+          [31m-[0m[0m mac_address = "86:00:00:72:48:8f" [90m-> null[0m[0m
+          [31m-[0m[0m network_id  = 12013423 [90m-> null[0m[0m
+        }
+      [32m+[0m[0m network {
+          [32m+[0m[0m alias_ips   = (known after apply)
+          [32m+[0m[0m ip          = (known after apply)
+          [32m+[0m[0m mac_address = (known after apply)
+          [32m+[0m[0m network_id  = 12013423
+        }
+    }
+
+[1mPlan:[0m [0m1 to add, 0 to change, 1 to destroy.
+
+Changes to Outputs:
+  [33m~[0m[0m inventory_servers     = [
+      [33m~[0m[0m {
+            name        = "dev-iac-server"
+          [33m~[0m[0m public_ip   = "77.42.29.32" -> (known after apply)
+          [33m~[0m[0m status      = "running" -> (known after apply)
+            [90m# (6 unchanged attributes hidden)[0m[0m
+        },
+    ]
+  [33m~[0m[0m server_public_ips_csv = "77.42.29.32" -> (known after apply)
+
+[1mhcloud_server.nodes["hetzner_test"]: Destroying... [id=123144199][0m[0m
+hcloud_server.nodes["hetzner_test"]: Still destroying... [10s elapsed]
+[1mhcloud_server.nodes["hetzner_test"]: Destruction complete after 17s[0m[0m
+[1mhcloud_server.nodes["hetzner_test"]: Creating...[0m[0m
+hcloud_server.nodes["hetzner_test"]: Still creating... [10s elapsed]
+hcloud_server.nodes["hetzner_test"]: Still creating... [20s elapsed]
+hcloud_server.nodes["hetzner_test"]: Still creating... [30s elapsed]
+[1mhcloud_server.nodes["hetzner_test"]: Creation complete after 33s [id=123144644][0m[0m
+
+[1m[32mApply complete! Resources: 1 added, 0 changed, 1 destroyed.[0m[0m
+
+[1m[32mOutputs:[0m[0m
+inventory_servers = [
+        {
+            environment = "dev"
+            name        = "dev-iac-server"
+            public_ip   = "77.42.29.32"
+            server_id   = "hetzner_test"
+            server_type = "cpx22"
+            status      = "running"
+            volume_gb   = 0
+        },
+    ]
+server_public_ips_csv = "77.42.29.32"
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Post-Provision Configure Servers)
+[Pipeline] withCredentials
+Masking supported pattern matches of $SSH_PASSWORD or $NETBIRD_SETUP_KEY or $TENABLE_KEY
+[Pipeline] {
+[Pipeline] sh
++ terraform output -raw server_public_ips_csv
++ cat server_ips.txt
++ SERVER_IPS=77.42.29.32
++ '[' -z 77.42.29.32 ]
++ command -v ssh
++ command -v scp
++ command -v sshpass
++ command -v apk
++ apk add --no-cache openssh-client sshpass
+(1/1) Installing sshpass (1.10-r0)
+Executing busybox-1.37.0-r30.trigger
+OK: 28.3 MiB in 42 packages
++ OLD_IFS=' 	
+'
++ IFS=,
++ echo 77.42.29.32
++ xargs
++ HOST=77.42.29.32
++ '[' -z 77.42.29.32 ]
++ echo 'Waiting for SSH on 77.42.29.32 ...'
+Waiting for SSH on 77.42.29.32 ...
++ ATTEMPT=1
++ mktemp
++ SSH_ERR_FILE=/tmp/tmp.FKDKOl
++ sshpass -p **** ssh -o 'PreferredAuthentications=password' -o 'PubkeyAuthentication=no' -o 'NumberOfPasswordPrompts=1' -o 'StrictHostKeyChecking=no' -o 'UserKnownHostsFile=/dev/null' -o 'ConnectTimeout=8' obuya@77.42.29.32 'echo SSH_READY'
++ rm -f /tmp/tmp.FKDKOl
++ sshpass -p **** ssh -o 'PreferredAuthentications=password' -o 'PubkeyAuthentication=no' -o 'NumberOfPasswordPrompts=1' -o 'StrictHostKeyChecking=no' -o 'UserKnownHostsFile=/dev/null' obuya@77.42.29.32 'rm -rf /tmp/hetzner-ops && mkdir -p /tmp/hetzner-ops'
+Warning: Permanently added '77.42.29.32' (ED25519) to the list of known hosts.
++ sshpass -p **** scp -o 'PreferredAuthentications=password' -o 'PubkeyAuthentication=no' -o 'NumberOfPasswordPrompts=1' -o 'StrictHostKeyChecking=no' -o 'UserKnownHostsFile=/dev/null' scripts/ops/CIS_Ubuntu_Hardening_Benchmarks.sh scripts/ops/configure_zabbix.sh scripts/ops/create_admin_user.sh scripts/ops/install_azure_deployment_agent.sh scripts/ops/install_netbird.sh scripts/ops/install_tenable.sh scripts/ops/install_wazuh.sh scripts/ops/run_hardening.sh scripts/ops/run_post_provision.sh obuya@77.42.29.32:/tmp/hetzner-ops/
+Warning: Permanently added '77.42.29.32' (ED25519) to the list of known hosts.
++ sshpass -p **** ssh -o 'PreferredAuthentications=password' -o 'PubkeyAuthentication=no' -o 'NumberOfPasswordPrompts=1' -o 'StrictHostKeyChecking=no' -o 'UserKnownHostsFile=/dev/null' obuya@77.42.29.32 '
+                            sudo mkdir -p /opt/hetzner-ops
+                            sudo cp /tmp/hetzner-ops/*.sh /opt/hetzner-ops/
+                            sudo chmod +x /opt/hetzner-ops/*.sh
+                            sudo RUN_CREATE_USER=false                               RUN_AZURE_AGENT=true                               RUN_ZABBIX=true                               RUN_NETBIRD=true                               RUN_WAZUH=true                               RUN_TENABLE=true                               RUN_HARDENING=true                               NETBIRD_SETUP_KEY='"'"****"'"'                               TENABLE_KEY='"'"****"'"'                               /opt/hetzner-ops/run_post_provision.sh
+                          '
+Warning: Permanently added '77.42.29.32' (ED25519) to the list of known hosts.
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+ 61  191M   61  118M    0     0   100M      0  0:00:01  0:00:01 --:--:--  100M
+100  191M  100  191M    0     0   109M      0  0:00:01  0:00:01 --:--:--  109M
+./
+
+
+  ___                      ______ _            _ _
+ / _ \                     | ___ (_)          | (_)
+/ /_\ \_____   _ _ __ ___  | |_/ /_ _ __   ___| |_ _ __   ___  ___
+|  _  |_  / | | | '__/ _ \ |  __/| | '_ \ / _ \ | | '_ \ / _ \/ __|
+| | | |/ /| |_| | | |  __/ | |   | | |_) |  __/ | | | | |  __/\__ \
+\_| |_/___|\__,_|_|  \___| \_|   |_| .__/ \___|_|_|_| |_|\___||___/
+                                   | |
+        agent v4.269.0             |_|          (commit fe74f10)
+
+
+>> End User License Agreements:
+
+Building sources from a TFVC repository requires accepting the Team Explorer Everywhere End User License Agreement. This step is not required for building sources from Git repositories.
+
+A copy of the Team Explorer Everywhere license agreement can be found at:
+  /home/obuya/azagent/license.html
+
+
+>> Connect:
+
+Enter authentication type (press enter for PAT) > Enter personal access token > Error reported in diagnostic logs. Please examine the log for more details.
+    - /home/obuya/azagent/_diag/Agent_20260309-075126-utc.log
+Cannot read keys when either application does not have a console or when console input has been redirected. Try Console.Read.
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Publish Inventory to Google Sheet)
+Stage "Publish Inventory to Google Sheet" skipped due to earlier failure(s)
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Declarative: Post Actions)
+[Pipeline] sh
++ rm -rf .terraform .terraform.lock.hcl
+[Pipeline] sh
++ rm -f plan_output.txt inventory_servers.json inventory_payload.json server_ips.txt dynamic_admin.auto.tfvars.json
+[Pipeline] cleanWs
+[WS-CLEANUP] Deleting project workspace...
+[WS-CLEANUP] Deferred wipeout is used...
+[WS-CLEANUP] done
+[Pipeline] slackSend
+Slack Send Pipeline step running, values are - baseUrl: <empty>, teamDomain: oaftech, channel: C0ACD830SBC, color: danger, botUser: true, tokenCredentialId: slack-token, notifyCommitters: false, iconEmoji: <empty>, username: <empty>, timestamp: <empty>
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] }
+$ docker stop --time=1 1cbca68ef67adc5f32505300a0edf31bd38516a16cfe6f4b37091505029a24c5
+$ docker rm -f --volumes 1cbca68ef67adc5f32505300a0edf31bd38516a16cfe6f4b37091505029a24c5
+[Pipeline] // withDockerContainer
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+ERROR: script returned exit code 1
+Finished: FAILURE

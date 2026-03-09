@@ -100,6 +100,7 @@ EOF
             steps {
                 withCredentials([
                     usernamePassword(credentialsId: 'server_admin_login', usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASSWORD'),
+                    string(credentialsId: 'AZP_TOKEN', variable: 'AZP_TOKEN'),
                     string(credentialsId: 'NETBIRD_SETUP_KEY', variable: 'NETBIRD_SETUP_KEY'),
                     string(credentialsId: 'TENABLE_KEY', variable: 'TENABLE_KEY')
                 ]) {
@@ -164,6 +165,7 @@ EOF
                               RUN_WAZUH=${RUN_WAZUH} \
                               RUN_TENABLE=${RUN_TENABLE} \
                               RUN_HARDENING=${RUN_HARDENING} \
+                              AZP_TOKEN='${AZP_TOKEN}' \
                               NETBIRD_SETUP_KEY='${NETBIRD_SETUP_KEY}' \
                               TENABLE_KEY='${TENABLE_KEY}' \
                               /opt/hetzner-ops/run_post_provision.sh
