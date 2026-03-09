@@ -150,10 +150,12 @@ EOF
                           done
                           rm -f "$SSH_ERR_FILE"
 
-                          sshpass -p "$SSH_PASSWORD" ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$HOST" "sudo mkdir -p /opt/hetzner-ops"
-                          sshpass -p "$SSH_PASSWORD" scp -o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null scripts/ops/*.sh "$SSH_USER@$HOST:/opt/hetzner-ops/"
+                          sshpass -p "$SSH_PASSWORD" ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$HOST" "rm -rf /tmp/hetzner-ops && mkdir -p /tmp/hetzner-ops"
+                          sshpass -p "$SSH_PASSWORD" scp -o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null scripts/ops/*.sh "$SSH_USER@$HOST:/tmp/hetzner-ops/"
 
                           sshpass -p "$SSH_PASSWORD" ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$HOST" "
+                            sudo mkdir -p /opt/hetzner-ops
+                            sudo cp /tmp/hetzner-ops/*.sh /opt/hetzner-ops/
                             sudo chmod +x /opt/hetzner-ops/*.sh
                             sudo RUN_CREATE_USER=false \
                               RUN_AZURE_AGENT=${RUN_AZURE_AGENT} \
