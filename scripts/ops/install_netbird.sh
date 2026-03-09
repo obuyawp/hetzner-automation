@@ -9,8 +9,18 @@ fi
 : "${NETBIRD_SETUP_KEY:?Set NETBIRD_SETUP_KEY}"
 NETBIRD_MGMT_URL="${NETBIRD_MGMT_URL:-https://ngao.oneacrefund.org}"
 
+install_netbird_if_missing() {
+  if command -v netbird >/dev/null 2>&1; then
+    return 0
+  fi
+
+  curl -fsSL https://pkgs.netbird.io/install.sh | bash
+}
+
+install_netbird_if_missing
+
 if ! command -v netbird >/dev/null 2>&1; then
-  echo "netbird binary not found. Install NetBird first." >&2
+  echo "netbird binary not found after install attempt." >&2
   exit 1
 fi
 
