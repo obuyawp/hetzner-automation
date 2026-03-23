@@ -1,12 +1,12 @@
 environment = "dev"
 
 servers = {
-  hetzner_test = {
-    name     = "dev-iac-server"
+  test_server = {
+    name     = "demo-server-test"
     profile  = "cpx22"
     location = "hel1"
     labels = {
-      app  = "dev-iac"
+      app  = "demo-infra"
       team = "infra"
     }
   }

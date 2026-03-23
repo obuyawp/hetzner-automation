@@ -23,6 +23,20 @@ servers = {
 - `name` supports custom names.
 - `servers` map key (`dataiku_primary`) is the stable Terraform identity.
 
+### Quick profile table (admin view)
+
+Instead of opening the long JSON directly, render a table:
+
+```bash
+./scripts/list_server_profiles.sh
+```
+
+Optional Markdown output (for tickets/docs):
+
+```bash
+./scripts/list_server_profiles.sh --markdown
+```
+
 ## 2. Provisioning outputs for inventory
 
 After `terraform apply`, run:
