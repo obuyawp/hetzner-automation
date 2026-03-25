@@ -83,10 +83,18 @@ Set secrets in Jenkins credentials or secure env injection:
 - `TENABLE_KEY`
 - `server_admin_login` (type: Username with password)
 
+## 5. Backstage on Jenkins host
+
+Backstage can run on the same server as Jenkins.
+
+- Deployment folder: `backstage/`
+- Deployment guide: `backstage/BACKSTAGE_DEPLOYMENT.md`
+- Bootstrap/start script: `backstage/deploy_backstage.sh`
+
 NetBird management URL defaults to `https://ngao.oneacrefund.org:33073`.  
 Override with `NETBIRD_MGMT_URL` if needed.
 
-## 5. Jenkins credential IDs for post-provision stage
+## 6. Jenkins credential IDs for post-provision stage
 
 The pipeline stage `Post-Provision Configure Servers` expects:
 
@@ -97,7 +105,7 @@ The pipeline stage `Post-Provision Configure Servers` expects:
 
 The Terraform plan/apply stages also use `server_admin_login` to generate a hashed password and bootstrap the admin user via cloud-init.
 
-## 6. Pipeline flow
+## 7. Pipeline flow
 
 1. Terraform plan
 2. Terraform apply

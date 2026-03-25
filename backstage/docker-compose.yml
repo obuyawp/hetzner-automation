@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: backstage-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - backstage-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backstage:
+    image: ${BACKSTAGE_IMAGE}
+    container_name: backstage
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./app-config.production.yaml:/app/app-config.production.yaml:ro
+    environment:
+      NODE_ENV: production
+      APP_CONFIG_app_baseUrl: ${BACKSTAGE_BASE_URL}
+      APP_CONFIG_backend_baseUrl: ${BACKSTAGE_BASE_URL}
+      APP_CONFIG_backend_cors_origin: ${BACKSTAGE_BASE_URL}
+      APP_CONFIG_backend_database_client: pg
+      APP_CONFIG_backend_database_connection_host: postgres
+      APP_CONFIG_backend_database_connection_port: 5432
+      APP_CONFIG_backend_database_connection_user: ${POSTGRES_USER}
+      APP_CONFIG_backend_database_connection_password: ${POSTGRES_PASSWORD}
+      APP_CONFIG_backend_database_connection_database: ${POSTGRES_DB}
+      APP_CONFIG_backend_auth_keys: "[{\"secret\":\"${BACKEND_SECRET}\"}]"
+    ports:
+      - "127.0.0.1:${BACKSTAGE_PORT}:7007"
+
+volumes:
+  backstage-postgres-data:
