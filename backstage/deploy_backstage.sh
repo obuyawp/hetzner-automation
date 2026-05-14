@@ -66,6 +66,7 @@ bootstrap() {
   copy_if_missing "${TEMPLATE_DIR}/.env.example" "${BACKSTAGE_HOME}/.env"
   copy_if_missing "${TEMPLATE_DIR}/nginx-backstage.conf.example" "${BACKSTAGE_HOME}/nginx-backstage.conf"
   copy_if_missing "${TEMPLATE_DIR}/app-config.production.yaml" "${BACKSTAGE_HOME}/app-config.production.yaml"
+  chmod 644 "${BACKSTAGE_HOME}/app-config.production.yaml"
 
   echo
   echo "Bootstrap complete."
@@ -78,6 +79,7 @@ sync_templates() {
   copy_force "${TEMPLATE_DIR}/docker-compose.yml" "${BACKSTAGE_HOME}/docker-compose.yml"
   copy_force "${TEMPLATE_DIR}/nginx-backstage.conf.example" "${BACKSTAGE_HOME}/nginx-backstage.conf"
   copy_force "${TEMPLATE_DIR}/app-config.production.yaml" "${BACKSTAGE_HOME}/app-config.production.yaml"
+  chmod 644 "${BACKSTAGE_HOME}/app-config.production.yaml"
   echo
   echo "Sync complete."
   echo "Review and edit env if needed: ${BACKSTAGE_HOME}/.env"

@@ -31,6 +31,9 @@ If templates in this repo are updated later, refresh server copies with:
 sudo ./backstage/deploy_backstage.sh sync
 ```
 
+The sync step ensures `/opt/backstage/app-config.production.yaml` is readable by the
+Backstage container (`chmod 644`), which prevents config watch errors.
+
 ## 3. Configure runtime values
 
 Edit:
