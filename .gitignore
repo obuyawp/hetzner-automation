@@ -1,8 +1,0 @@
-.terraform/
-*.tfstate
-*.tfstate.backup
-.terraform.lock.hcl
-plan_output.txt
-inventory_servers.json
-inventory_payload.json
-dynamic_admin.auto.tfvars.json
