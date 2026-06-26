@@ -6,6 +6,10 @@ pipeline {
         }
     }
 
+    triggers {
+        githubPush()
+    }
+
     parameters {
         booleanParam(name: 'RUN_POST_PROVISION', defaultValue: true, description: 'Run post-provision scripts on created servers over SSH')
         booleanParam(name: 'RUN_AZURE_AGENT', defaultValue: false, description: 'Run Azure deployment agent setup command')
@@ -21,6 +25,7 @@ pipeline {
         TF_TOKEN_app_terraform_io = credentials('hcp-terraform-token')
         TF_VAR_hcloud_token       = credentials('hcloud_token')
         GOOGLE_SHEET_WEBHOOK_URL  = 'https://script.google.com/macros/s/AKfycbyEBEyAv5ep7pjVVQgnS5FiKOwN3jzsGjwRsIcZuMKiWIjgSUKDeIYVYiFv090D33Q/exec'
+        SLACK_CHANNEL             = 'C0ACD830SBC'
     }
 
     stages {
@@ -66,7 +71,39 @@ EOF
                 }
             }
         }
+
+        stage('Slack Approval') {
+            when {
+                not { equals expected: 'No changes detected', actual: env.TF_SUMMARY }
+            }
+            steps {
+                slackSend(
+                    channel: env.SLACK_CHANNEL,
+                    color: 'warning',
+                    message: "⏳ *Hetzner Infrastructure Change Pending Approval*\n*Build:* #${env.BUILD_NUMBER}\n*Branch:* ${env.GIT_BRANCH}\n*Plan:* ${env.TF_SUMMARY}\n\n👉 <${env.BUILD_URL}input|Approve or Reject>"
+                )
+                script {
+                    try {
+                        timeout(time: 30, unit: 'MINUTES') {
+                            input message: "Terraform will apply: ${env.TF_SUMMARY}", ok: 'Approve'
+                        }
+                    } catch (err) {
+                        slackSend(
+                            channel: env.SLACK_CHANNEL,
+                            color: 'danger',
+                            message: "🚫 *Hetzner Deployment Rejected*\n*Build:* #${env.BUILD_NUMBER}\n*Plan was:* ${env.TF_SUMMARY}\n*Rejected by:* ${err.getCauses()[0]?.getUser()?.toString() ?: 'timeout/unknown'}"
+                        )
+                        currentBuild.result = 'ABORTED'
+                        error("Deployment rejected")
+                    }
+                }
+            }
+        }
+
         stage('Terraform Apply') {
+            when {
+                not { equals expected: 'No changes detected', actual: env.TF_SUMMARY }
+            }
             steps {
                 withCredentials([
                     usernamePassword(credentialsId: 'server_admin_login', usernameVariable: 'SERVER_ADMIN_USERNAME', passwordVariable: 'SERVER_ADMIN_PASSWORD')
@@ -104,9 +141,13 @@ EOF
                 }
             }
         }
+
         stage('Post-Provision Configure Servers') {
             when {
-                expression { return params.RUN_POST_PROVISION }
+                allOf {
+                    expression { return params.RUN_POST_PROVISION }
+                    not { equals expected: 'No changes detected', actual: env.TF_SUMMARY }
+                }
             }
             steps {
                 withCredentials([
@@ -187,7 +228,11 @@ EOF
                 }
             }
         }
+
         stage('Publish Inventory to Google Sheet') {
+            when {
+                not { equals expected: 'No changes detected', actual: env.TF_SUMMARY }
+            }
             steps {
                 withCredentials([
                     string(credentialsId: 'GOOGLE_SHEET_SECRET', variable: 'GOOGLE_SHEET_SECRET')
@@ -246,19 +291,17 @@ EOF
 
     post {
         always {
-            // PERMANENT FIX: Delete root-owned files before the container exits
-            // This allows the next 'Git Checkout' to succeed
-            sh 'rm -rf .terraform*' 
+            sh 'rm -rf .terraform*'
             sh 'rm -f plan_output.txt inventory_servers.json inventory_payload.json server_ips.txt dynamic_admin.auto.tfvars.json webhook_response.txt'
             cleanWs()
         }
         success {
-            slackSend(channel: 'C0ACD830SBC', color: 'good', 
+            slackSend(channel: env.SLACK_CHANNEL, color: 'good',
                 message: "✅ *Hetzner Deployment Successful*\n*Build:* #${env.BUILD_NUMBER}\n*Status:* ${env.TF_SUMMARY}\n*Link:* ${env.BUILD_URL}")
         }
         failure {
-            slackSend(channel: 'C0ACD830SBC', color: 'danger', 
-                message: "❌ *Hetzner Deployment Failed*\n*Build:* #${env.BUILD_NUMBER}\n*Error:* Check logs immediately: ${env.BUILD_URL}")
+            slackSend(channel: env.SLACK_CHANNEL, color: 'danger',
+                message: "❌ *Hetzner Deployment Failed*\n*Build:* #${env.BUILD_NUMBER}\n*Error:* Check logs: ${env.BUILD_URL}")
         }
     }
 }
