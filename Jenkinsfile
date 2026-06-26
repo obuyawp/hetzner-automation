@@ -70,7 +70,7 @@ EOF
                         env.TF_CHANGES = sh(script: '''
                             grep -E "^  # " plan_output.txt | sed 's/^  # //' | head -15 || true
                         ''', returnStdout: true).trim()
-                        env.TF_COST = sh(script: '''
+                        env.TF_COST = sh(script: """
                             if ! command -v jq >/dev/null 2>&1; then
                               apk add --no-cache jq >/dev/null 2>&1 || true
                             fi
@@ -78,25 +78,25 @@ EOF
                               apk add --no-cache bc >/dev/null 2>&1 || true
                             fi
 
-                            PROFILES=$(grep 'profile' terraform.tfvars 2>/dev/null | sed -n 's/.*profile.*=.*"\([^"]*\)".*/\1/p' || true)
-                            if [ -z "$PROFILES" ]; then
+                            PROFILES=\$(awk -F'"' '/profile.*=/{print \$2}' terraform.tfvars 2>/dev/null || true)
+                            if [ -z "\$PROFILES" ]; then
                               echo "No servers defined"
                               exit 0
                             fi
                             TOTAL=0
-                            LINES=""
-                            for P in $PROFILES; do
-                              INFO=$(jq -r --arg p "$P" '.server_profiles[$p] // empty | "\($p): €\(.monthly_eur)/mo (\(.vcpu)vCPU, \(.ram_gb)GB RAM, \(.disk_gb)GB disk)"' server_profiles.auto.tfvars.json 2>/dev/null)
-                              COST=$(jq -r --arg p "$P" '.server_profiles[$p].monthly_eur // 0' server_profiles.auto.tfvars.json 2>/dev/null)
-                              if [ -n "$INFO" ]; then
-                                LINES="${LINES}${INFO}\n"
-                                TOTAL=$(echo "$TOTAL + $COST" | bc 2>/dev/null || echo "$TOTAL")
+                            for P in \$PROFILES; do
+                              COST=\$(jq -r --arg p "\$P" '.server_profiles[\$p].monthly_eur // 0' server_profiles.auto.tfvars.json 2>/dev/null)
+                              VCPU=\$(jq -r --arg p "\$P" '.server_profiles[\$p].vcpu // ""' server_profiles.auto.tfvars.json 2>/dev/null)
+                              RAM=\$(jq -r --arg p "\$P" '.server_profiles[\$p].ram_gb // ""' server_profiles.auto.tfvars.json 2>/dev/null)
+                              DISK=\$(jq -r --arg p "\$P" '.server_profiles[\$p].disk_gb // ""' server_profiles.auto.tfvars.json 2>/dev/null)
+                              if [ -n "\$COST" ] && [ "\$COST" != "0" ] && [ "\$COST" != "null" ]; then
+                                echo "\$P: €\${COST}/mo (\${VCPU}vCPU, \${RAM}GB RAM, \${DISK}GB disk)"
+                                TOTAL=\$(echo "\$TOTAL + \$COST" | bc 2>/dev/null || echo "\$TOTAL")
                               fi
                             done
-                            printf "%b" "$LINES"
                             echo "―――――――――――――――"
-                            echo "Total: €${TOTAL}/mo"
-                        ''', returnStdout: true).trim()
+                            echo "Total: €\${TOTAL}/mo"
+                        """, returnStdout: true).trim()
                     }
                 }
             }
