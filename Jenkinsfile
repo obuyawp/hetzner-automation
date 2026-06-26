@@ -67,6 +67,36 @@ EOF
                             terraform plan -no-color | tee plan_output.txt
                         '''
                         env.TF_SUMMARY = sh(script: "grep 'Plan:' plan_output.txt || echo 'No changes detected'", returnStdout: true).trim()
+                        env.TF_CHANGES = sh(script: '''
+                            grep -E "^  # " plan_output.txt | sed 's/^  # //' | head -15 || true
+                        ''', returnStdout: true).trim()
+                        env.TF_COST = sh(script: '''
+                            if ! command -v jq >/dev/null 2>&1; then
+                              apk add --no-cache jq >/dev/null 2>&1 || true
+                            fi
+                            if ! command -v bc >/dev/null 2>&1; then
+                              apk add --no-cache bc >/dev/null 2>&1 || true
+                            fi
+
+                            PROFILES=$(grep 'profile' terraform.tfvars 2>/dev/null | sed -n 's/.*profile.*=.*"\([^"]*\)".*/\1/p' || true)
+                            if [ -z "$PROFILES" ]; then
+                              echo "No servers defined"
+                              exit 0
+                            fi
+                            TOTAL=0
+                            LINES=""
+                            for P in $PROFILES; do
+                              INFO=$(jq -r --arg p "$P" '.server_profiles[$p] // empty | "\($p): €\(.monthly_eur)/mo (\(.vcpu)vCPU, \(.ram_gb)GB RAM, \(.disk_gb)GB disk)"' server_profiles.auto.tfvars.json 2>/dev/null)
+                              COST=$(jq -r --arg p "$P" '.server_profiles[$p].monthly_eur // 0' server_profiles.auto.tfvars.json 2>/dev/null)
+                              if [ -n "$INFO" ]; then
+                                LINES="${LINES}${INFO}\n"
+                                TOTAL=$(echo "$TOTAL + $COST" | bc 2>/dev/null || echo "$TOTAL")
+                              fi
+                            done
+                            printf "%b" "$LINES"
+                            echo "―――――――――――――――"
+                            echo "Total: €${TOTAL}/mo"
+                        ''', returnStdout: true).trim()
                     }
                 }
             }
@@ -80,7 +110,7 @@ EOF
                 slackSend(
                     channel: env.SLACK_CHANNEL,
                     color: 'warning',
-                    message: "⏳ *Hetzner Infrastructure Change Pending Approval*\n*Build:* #${env.BUILD_NUMBER}\n*Branch:* ${env.GIT_BRANCH}\n*Plan:* ${env.TF_SUMMARY}\n\n👉 <${env.BUILD_URL}input|Approve or Reject>"
+                    message: "⏳ *Hetzner Infrastructure Change Pending Approval*\n*Build:* #${env.BUILD_NUMBER}\n*Branch:* ${env.GIT_BRANCH}\n*Plan:* ${env.TF_SUMMARY}\n\n*Resources:*\n${env.TF_CHANGES}\n\n*💰 Cost Estimate:*\n${env.TF_COST}\n\n👉 <${env.BUILD_URL}input|Approve or Reject>"
                 )
                 script {
                     try {
