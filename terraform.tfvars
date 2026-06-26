@@ -12,4 +12,15 @@ servers = {
       purpose = "testing"
     }
   }
+  app_server = {
+    name       = "dev-app-server"
+    profile    = "cx33"
+    location   = "fsn1"
+    image      = "ubuntu-22.04"
+    private_ip = "10.0.1.11"
+    volume_gb  = 50
+    labels = {
+      purpose = "application"
+    }
+  }
 }
