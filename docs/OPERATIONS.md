@@ -101,6 +101,16 @@ The Terraform plan/apply stages also use `server_admin_login` to generate a hash
 3. Post-provision over SSH (optional via Jenkins boolean parameters)
 4. Publish inventory to Google Sheet webhook
 
+## 6a. Re-running post-provision on an existing server
+
+The Post-Provision and Publish Inventory stages are skipped when Terraform reports "No changes detected", so a plain re-run does nothing for a server that already exists. To re-run them (for example after fixing an expired token):
+
+- Start the job with **`FORCE_POST_PROVISION = true`** and the `RUN_*` flags you want.
+- It runs on **all** servers in Terraform state, not just the newest one.
+- Steps run in this order and the script stops at the first failure (`set -e`): Azure agent, Zabbix, NetBird, Wazuh, Tenable, hardening. Set `RUN_AZURE_AGENT = false` if you do not need the agent or the `AZP_TOKEN` has expired.
+- `RUN_HARDENING` defaults to false. Turn it on only after the other agents are confirmed working.
+- If the Azure agent install failed part-way, remove `/home/<admin>/azagent` on the server before retrying it.
+
 ## 7. Hetzner project and shared state
 
 - The Hetzner **project is chosen only by the API token** in the Jenkins credential `hcloud_token`. Nothing in the repo selects a project.
