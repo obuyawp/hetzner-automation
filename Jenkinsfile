@@ -12,6 +12,7 @@ pipeline {
 
     parameters {
         booleanParam(name: 'RUN_POST_PROVISION', defaultValue: true, description: 'Run post-provision scripts on created servers over SSH')
+        booleanParam(name: 'FORCE_POST_PROVISION', defaultValue: false, description: 'Run post-provision and inventory publish even when Terraform reports no changes (use to re-run on an existing server). Runs on ALL servers in state.')
         booleanParam(name: 'RUN_AZURE_AGENT', defaultValue: false, description: 'Run Azure deployment agent setup command')
         booleanParam(name: 'RUN_ZABBIX', defaultValue: true, description: 'Configure Zabbix agent settings')
         booleanParam(name: 'RUN_NETBIRD', defaultValue: true, description: 'Enroll server in NetBird')
@@ -180,7 +181,10 @@ EOF
             when {
                 allOf {
                     expression { return params.RUN_POST_PROVISION }
-                    not { equals expected: 'No changes detected', actual: env.TF_SUMMARY }
+                    anyOf {
+                        expression { return params.FORCE_POST_PROVISION }
+                        not { equals expected: 'No changes detected', actual: env.TF_SUMMARY }
+                    }
                 }
             }
             steps {
@@ -265,7 +269,10 @@ EOF
 
         stage('Publish Inventory to Google Sheet') {
             when {
-                not { equals expected: 'No changes detected', actual: env.TF_SUMMARY }
+                anyOf {
+                    expression { return params.FORCE_POST_PROVISION }
+                    not { equals expected: 'No changes detected', actual: env.TF_SUMMARY }
+                }
             }
             steps {
                 withCredentials([
