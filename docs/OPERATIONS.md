@@ -140,5 +140,5 @@ servers = {
 ## 10. Troubleshooting
 
 - `Error: error during placement (resource_unavailable)`: Hetzner has no capacity for that server type in that location. Nothing is created. Choose a different profile or location (any of `hel1`, `fsn1`, `nbg1` works with the existing `eu-central` network).
-- A docs-only push still triggers the Jenkins job and a new plan. If a server is not yet created, that plan will ask for approval again. Push docs after the apply finishes.
+- Jenkins is run manually with "Build with Parameters". Pushing to `dev` does not start a build, even though the Jenkinsfile declares `githubPush()`. Nothing is planned or applied until someone starts the job.
 - Jenkins prints the admin password hash and username in the console log (shell trace). The plain password is masked, the hash is not. Treat the build log as sensitive.
