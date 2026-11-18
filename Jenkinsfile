@@ -47,6 +47,7 @@ pipeline {
                               fi
                             fi
 
+                            set +x   # keep password hash and username out of the build log
                             if command -v sha256sum >/dev/null 2>&1; then
                               SERVER_ADMIN_PASSWORD_SALT="$(printf '%s' "${SERVER_ADMIN_USERNAME}" | sha256sum | awk '{print substr($1,1,16)}')"
                             else
@@ -63,6 +64,7 @@ pipeline {
   }
 }
 EOF
+                            set -x
                             terraform init
                             terraform plan -no-color | tee plan_output.txt
                         '''
@@ -150,6 +152,7 @@ EOF
                           fi
                         fi
 
+                        set +x   # keep password hash and username out of the build log
                         if command -v sha256sum >/dev/null 2>&1; then
                           SERVER_ADMIN_PASSWORD_SALT="$(printf '%s' "${SERVER_ADMIN_USERNAME}" | sha256sum | awk '{print substr($1,1,16)}')"
                         else
@@ -166,6 +169,7 @@ EOF
   }
 }
 EOF
+                        set -x
                         terraform apply -auto-approve
                     '''
                 }
