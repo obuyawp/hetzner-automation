@@ -152,3 +152,23 @@ servers = {
 - `Error: error during placement (resource_unavailable)`: Hetzner has no capacity for that server type in that location. Nothing is created. Choose a different profile or location (any of `hel1`, `fsn1`, `nbg1` works with the existing `eu-central` network).
 - Jenkins is run manually with "Build with Parameters". Pushing to `dev` does not start a build, even though the Jenkinsfile declares `githubPush()`. Nothing is planned or applied until someone starts the job.
 - Jenkins prints the admin password hash and username in the console log (shell trace). The plain password is masked, the hash is not. Treat the build log as sensitive.
+
+## 11. Known issues and planned follow-ups
+
+### Decision: drop private networking (not done yet)
+Nothing in this repo uses the private network (post-provision connects over the public IP, NetBird handles access). Decision: remove private networking in a later change. Current behaviour until then:
+
+- Every plan shows `~ update in-place` on each server: Terraform detaches and re-attaches the private network because the IP is not pinned (`private_ip` unset). It takes about 15-30 seconds, changes the MAC, and has so far kept the same IP (`10.0.1.1` for Networks-general-prod). It is safe to approve. Reject only if a server shows destroy or replace.
+- The `private_ip` field in the inventory output is always `null` (`network[0]` indexes a set in `main.tf`). Do not rely on it.
+- To stop the churn without removing networking, set `private_ip = "<current ip>"` on the server entry.
+
+### When dropping private networking
+1. Remove the `dynamic "network"` block from `hcloud_server.nodes` and the `depends_on` on the subnet, and remove `private_ip` from the `servers` variable. This detaches existing servers (one in-place change each).
+2. Only after no server is attached, remove `hcloud_network.automation` and `hcloud_network_subnet.automation_subnet` plus the `network_cidr`, `subnet_cidr` and `network_zone` variables. This destroys network `12013423` in ITO-TRAINING. Confirm nothing else in that project uses it first.
+3. Remove `private_ip` from the inventory output and the example in section 1.
+
+### Other open items
+- Networks-general-prod is only partly configured: Zabbix agent installed, NetBird installed but not enrolled (`setup key is invalid`; renew the `NETBIRD_SETUP_KEY` credential), Wazuh, Tenable and hardening not run. Re-run with `FORCE_POST_PROVISION` once the key is fixed. Note that option runs on all servers in state.
+- The `AZP_TOKEN` credential has expired. Renew it before using `RUN_AZURE_AGENT`.
+- The Zabbix script falls back to `zabbix-agent` 5.0.17 because `zabbix-agent2` is not in the Ubuntu repo. Confirm this version is acceptable.
+- Idea: an optional parameter to limit post-provision to specific IPs.
